@@ -3,16 +3,34 @@ const { URL } = require("url");
 
 const MAX_BODY_BYTES = 64 * 1024;
 
-function createLocationIngestServer({ store, token, onAccepted = null }) {
+function createLocationIngestServer({ store, token, onAccepted = null, service = null }) {
   const normalizedToken = String(token || "").trim();
   const acceptedCallback = typeof onAccepted === "function" ? onAccepted : null;
+
   return http.createServer(async (req, res) => {
     try {
       const url = new URL(req.url || "/", "http://localhost");
+
       if (req.method === "GET" && url.pathname === "/healthz") {
         writeJson(res, 200, { ok: true });
         return;
       }
+
+      // ========== 新增：GET /snapshot 端点 ==========
+      if (req.method === "GET" && url.pathname === "/snapshot") {
+        if (!isAuthorizedHeader(req.headers.authorization, normalizedToken)) {
+          writeJson(res, 401, { error: "unauthorized" });
+          return;
+        }
+        if (!service) {
+          writeJson(res, 500, { error: "service_not_available" });
+          return;
+        }
+        const snapshot = service.getSnapshot();
+        writeJson(res, 200, snapshot);
+        return;
+      }
+      // ========== 新增结束 ==========
 
       if (req.method === "POST" && url.pathname === "/location/ingest") {
         const result = ingestLocationPayload({
@@ -23,12 +41,14 @@ function createLocationIngestServer({ store, token, onAccepted = null }) {
           remoteAddress: extractRemoteAddress(req),
           userAgent: req.headers["user-agent"] || "",
         });
+
         if (acceptedCallback) {
           Promise.resolve(acceptedCallback(result)).catch((error) => {
             const message = error instanceof Error ? error.message : String(error);
             console.error(`[whereabouts-mcp] location accept callback failed: ${message}`);
           });
         }
+
         writeJson(res, result.statusCode, result.body);
         return;
       }
@@ -40,8 +60,8 @@ function createLocationIngestServer({ store, token, onAccepted = null }) {
   });
 }
 
-async function startLocationIngestServer({ store, token, host, port, onAccepted }) {
-  const server = createLocationIngestServer({ store, token, onAccepted });
+async function startLocationIngestServer({ store, token, host, port, onAccepted, service }) {
+  const server = createLocationIngestServer({ store, token, onAccepted, service });
   await new Promise((resolve, reject) => {
     server.once("error", reject);
     server.listen(port, host, resolve);
@@ -56,7 +76,6 @@ function ingestLocationPayload({ store, token, authorization, bodyText, remoteAd
   if (!String(bodyText || "").trim()) {
     return { statusCode: 400, body: { error: "missing request body" } };
   }
-
   let parsed = null;
   try {
     parsed = JSON.parse(String(bodyText));
@@ -66,7 +85,6 @@ function ingestLocationPayload({ store, token, authorization, bodyText, remoteAd
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     return { statusCode: 400, body: { error: "request body must be a JSON object" } };
   }
-
   const appended = store.append({
     ...parsed,
     timestamp: parsed.timestamp || parsed.capturedAt || new Date().toISOString(),
