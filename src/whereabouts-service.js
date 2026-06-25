@@ -173,6 +173,7 @@ class WhereaboutsService {
       host: resolvedHost,
       port: resolvedPort,
       onAccepted,
+      service: this,
     });
     return this.server;
   }
