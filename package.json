@@ -13,12 +13,13 @@
     "node": ">=22"
   },
   "scripts": {
+    "start": "node ./bin/whereabouts-mcp.js serve",
     "serve": "node ./bin/whereabouts-mcp.js serve",
     "latest": "node ./bin/whereabouts-mcp.js latest",
     "history": "node ./bin/whereabouts-mcp.js history",
     "moves": "node ./bin/whereabouts-mcp.js moves",
     "mcp": "node ./bin/whereabouts-mcp.js tool-mcp-server",
-    "check": "node --check ./src/index.js && node --check ./src/config.js && node --check ./src/location-store.js && node --check ./src/location-ingest-server.js && node --check ./src/location-format.js && node --check ./src/whereabouts-service.js && node --check ./src/tool-host.js && node --check ./src/mcp-stdio-server.js && node --check ./src/cli.js && node --check ./bin/whereabouts-mcp.js",
+    "check": "node --check ./src/index.js && node --check ./src/config.js && node --check ./src/location-store.js && node --check ./src/location-ingest-server.js && node --check ./src/location-format.js && node --check ./src/whereabouts-service.js && node --check ./src/tool-host.js && node --check ./src/mcp-stdio-server.js && node --check ./src/mcp-http-server.js && node --check ./src/cli.js && node --check ./bin/whereabouts-mcp.js",
     "test": "node --test"
   }
 }
