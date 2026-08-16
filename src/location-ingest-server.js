@@ -1,11 +1,15 @@
 const http = require("http");
 const { URL } = require("url");
 
+const { handleMcpHttpRequest } = require("./mcp-http-server");
+const { WhereaboutsToolHost } = require("./tool-host");
+
 const MAX_BODY_BYTES = 64 * 1024;
 
 function createLocationIngestServer({ store, token, onAccepted = null, service = null }) {
   const normalizedToken = String(token || "").trim();
   const acceptedCallback = typeof onAccepted === "function" ? onAccepted : null;
+  const toolHost = service ? new WhereaboutsToolHost({ service }) : null;
 
   return http.createServer(async (req, res) => {
     try {
@@ -31,6 +35,24 @@ function createLocationIngestServer({ store, token, onAccepted = null, service =
         return;
       }
       // ========== 新增结束 ==========
+
+      if (url.pathname === "/mcp") {
+        if (!toolHost) {
+          writeJson(res, 500, { error: "service_not_available" });
+          return;
+        }
+        if (!isAuthorizedHeader(req.headers.authorization, normalizedToken)) {
+          writeJson(res, 401, { error: "unauthorized" });
+          return;
+        }
+        if (req.method !== "POST") {
+          res.writeHead(405, { Allow: "POST" });
+          res.end();
+          return;
+        }
+        await handleMcpHttpRequest({ res, bodyText: await readRawBody(req), toolHost });
+        return;
+      }
 
       if (req.method === "POST" && url.pathname === "/location/ingest") {
         const result = ingestLocationPayload({
