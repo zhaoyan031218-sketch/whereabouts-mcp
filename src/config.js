@@ -9,7 +9,7 @@ function readConfig(argv = process.argv.slice(2)) {
     stateDir,
     storeFile: readTextEnv("WHEREABOUTS_STORE_FILE") || path.join(stateDir, "locations.json"),
     host: readTextEnv("WHEREABOUTS_HOST") || "0.0.0.0",
-    port: readIntEnv("WHEREABOUTS_PORT") || 4318,
+    port: readIntEnv("WHEREABOUTS_PORT") || readIntEnv("PORT") || 4318,
     token: readTextEnv("WHEREABOUTS_TOKEN"),
     historyLimit: readIntEnv("WHEREABOUTS_HISTORY_LIMIT") || 1000,
     movementEventLimit: readIntEnv("WHEREABOUTS_MOVEMENT_EVENT_LIMIT"),
