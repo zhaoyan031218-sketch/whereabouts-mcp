@@ -482,20 +482,19 @@ function buildBatterySeries(records, bucketMinutes) {
   };
 }
 
+const BATTERY_SERIES_MAX_POINTS = 24;
+
 function chooseBatteryBucketMinutes(firstTimestamp, lastTimestamp) {
   const first = Date.parse(firstTimestamp || "");
   const last = Date.parse(lastTimestamp || "");
   if (!Number.isFinite(first) || !Number.isFinite(last) || last <= first) {
     return 5;
   }
+  // Widen buckets with the span so the carry-forward series stays at or below
+  // BATTERY_SERIES_MAX_POINTS values, keeping tool output compact for models.
   const spanMinutes = (last - first) / 60000;
-  if (spanMinutes <= 24 * 60) {
-    return 5;
-  }
-  if (spanMinutes <= 7 * 24 * 60) {
-    return 30;
-  }
-  return 120;
+  const rawBucketMinutes = spanMinutes / BATTERY_SERIES_MAX_POINTS;
+  return Math.max(5, Math.ceil(rawBucketMinutes / 5) * 5);
 }
 
 function normalizeBatteryBucketMinutes(value, fallback) {
